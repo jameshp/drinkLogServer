@@ -12,6 +12,7 @@ import 'package:shelf_route/shelf_route.dart' as shelf_route;
 import 'package:rpc/rpc.dart';
 
 import 'drinkapi.dart';
+import 'mongo_dbapi.dart';
 
 const _API_PREFIX = '/api';
 final ApiServer _apiServer = new ApiServer(apiPrefix:_API_PREFIX, prettyPrint:true);
@@ -28,7 +29,7 @@ Future main(List<String> args) async {
     exit(1);
   });
 
-  _apiServer.addApi(new DrinkApi());
+  _apiServer.addApi(new DrinkApi(new UserDaoMongoDBImpl()));
   _apiServer.enableDiscoveryApi();
   
   var apiHandler = shelf_rpc.createRpcHandler(_apiServer);
