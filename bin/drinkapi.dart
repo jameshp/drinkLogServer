@@ -1,19 +1,62 @@
 library drinkapi;
 
-import 'dart:io';
-
+import 'dart:async';
 import 'package:rpc/api.dart';
-import 'mongo_dbapi.dart';
+import 'mongodb_api.dart';
+import 'package:mongo_dart/mongo_dart.dart';
 
+///Defines the [UserResponse] returned on the REST API 
 class UserResponse{
-  int id;
-  String username;
+  String id;
+  String login;
   String firstName;
   String lastName;
+  String email;
   DateTime lastActivity;
   List<String> tags;
   
   UserResponse();
+  
+  ///used to create userResponse Objects based on MongoDB data
+  UserResponse.fromJson(Map json) {
+      ObjectId _objectId = json["_id"]; 
+      id = _objectId.toHexString();
+      login = json["login"];
+      firstName = json["firstName"];
+      lastName = json["lastName"];
+      email = json["email"];
+      lastActivity = json["lastActivity"];
+      tags = json["tags"];
+  }
+
+  
+  
+}
+
+class UserRequest{
+  @ApiProperty(required:true)
+  String login;
+  
+  String firstName;
+  String lastName;
+  String email;
+  DateTime lastActivity;
+  
+  @ApiProperty(required:false)
+  List<String> tags;
+  
+  //this is automatically called by JSON.encode
+  Map toJson() {
+    return {
+        "login" : login,
+        "firstName": firstName,
+        "lastName": lastName,
+        "email": email,
+        "lastActivity": new DateTime.now(),
+        "tags":tags
+    };
+  }
+  
 }
 
 @ApiClass(
@@ -27,12 +70,25 @@ class DrinkApi{
   
   DrinkApi(this._userDao);
 
+  ///get all users 
   @ApiMethod(method:'GET', path:'users/{name}')
-  Map<String, List<UserResponse>> getUsers(String name){
-    return {'Users':_userDao.getAll()};
-    
-    
-    //    List<UserResponse> x = new List<UserResponse>();
+  Future<List<UserResponse>> getUsers(String name) async{
+    List<UserResponse> allUsers = await _userDao.getAll();
+    return allUsers;
+  }
+  
+  @ApiMethod(method:'POST', path:'users/')
+  Future<UserResponse> addUser(UserRequest userReq) async{
+    //datavalidation logic should come here
+    UserResponse user = await _userDao.addUser(userReq);
+    return user;
+  }
+  
+}
+
+
+
+//    List<UserResponse> x = new List<UserResponse>();
 //    if (name == null || name.isEmpty){
 //      return {'Users':x};  
 //    }
@@ -59,8 +115,3 @@ class DrinkApi{
 //      );
 //      return {'Users':x};
 //    }
-  }
-  
-  
-  
-}
