@@ -8,7 +8,7 @@ environment:
 dependencies:
   args: '>=0.10.0 <0.14.0'
   shelf: '>=0.5.0 <0.7.0'
-  rpc: '>=0.4.1'
+  rpc: '>=0.4.3'
   shelf_route: '>0.11.0'
   shelf_rpc: '0.0.3'
   mongo_dart: '0.1.47'

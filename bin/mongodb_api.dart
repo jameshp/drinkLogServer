@@ -5,8 +5,8 @@ import 'dart:async';
 
 import 'drinkapi.dart';
 
-/// Interface for reading and writing [User] objects to the persistence layers.
-abstract class UserDao {
+/// Interface for reading and writing [User] and [Drink] objects to the persistence layers.
+abstract class Dao {
 
   /// Get all [User]s.
   Future<List<UserResponse>> getAll() ;
@@ -14,25 +14,19 @@ abstract class UserDao {
   /// Store a [User]
   Future<UserResponse> addUser(UserRequest user);
 
-  /// Get the [User] with the given [id].
-  Future<UserResponse> get(int id);
-
-  /// Create a [User] if the ID is `null` otherwise modify the given [Todo].
-  //Future<UserResponse> write(UserRequest todo);
-
-  /// Deleted all completed [User]s.
-  Future deleteCompleted();
-
-  /// Delete the [User] with the given [id].
-  Future delete(int id);
+  
+  Future<DrinkLogRequest> addDrink(DrinkLogRequest drinkLog);
+  
+  //getAllDrinks from User
+  Future<List<DrinkLogRequest>> getDrinksFromUser(String user);
+  
 
 }
 
 
 /// Handles reading and writing [User] objects to the MongoDB.
-class UserDaoMongoDBImpl implements UserDao {
-  
-  
+class DaoMongoDBImpl implements Dao {
+    
   
   @override
   Future<List<UserResponse>> getAll() async {
@@ -43,8 +37,8 @@ class UserDaoMongoDBImpl implements UserDao {
     print(">> Adding Users");
     usersCollection = db.collection("users");
     //await db.dropCollection("users");
-    await usersCollection.insertAll([{'login':'mpolt', 'firstName':'Michael','lastName':'Polt','email':'michael.polt@gmail.com','lastActivity':new DateTime.now(),'tags':["aTag","bTag","anotherTag"]},
-      {'login':'mschoef', 'firstName':'Michael','lastName':'Schöfmann','email':'m.shoff@polizei.gv.at','lastActivity':new DateTime.now(),'tags':["poli","tag","superTag"]}]);
+    //await usersCollection.insertAll([{'login':'mpolt', 'firstName':'Michael','lastName':'Polt','email':'michael.polt@gmail.com','lastActivity':new DateTime.now(),'tags':["aTag","bTag","anotherTag"]},
+    //  {'login':'mschoef', 'firstName':'Michael','lastName':'Schöfmann','email':'m.shoff@polizei.gv.at','lastActivity':new DateTime.now(),'tags':["poli","tag","superTag"]}]);
     await db.ensureIndex('users', keys: {'login': -1});
     await usersCollection.find().forEach((user)=>users.add(new UserResponse.fromJson(user)));
     await db.close();
@@ -65,20 +59,53 @@ class UserDaoMongoDBImpl implements UserDao {
     return response;
   }
   
+
+
   @override
-  Future delete(int id) {
-    // TODO: implement delete
+  Future<DrinkLogRequest> addDrink(DrinkLogRequest drinkLog) async {
+    DbCollection usersCollection;
+    DbCollection drinksCollection;
+    Db db =await new Db("mongodb://127.0.0.1/drinklog");
+    await db.open();
+    print(">> Adding {$drinkLog}");
+    drinksCollection = db.collection("drinklog");
+    usersCollection = db.collection("users");
+    
+    Map storedUser = await usersCollection.findOne({'_id':ObjectId.parse(drinkLog.user_id)});
+    print(">> User {$storedUser} found");
+    
+    //cance if user is not valid in request
+    
+    //set an ID for the item, to find it again
+    ObjectId id = new ObjectId();
+    drinkLog.id = id.toHexString();
+    var createdDrinkLog = await drinksCollection.insert(drinkLog.toBson());
+    
+    Map storedDrinkLog = await drinksCollection.findOne({'_id':ObjectId.parse(drinkLog.id)});
+    DrinkLogRequest response = await new DrinkLogRequest.fromBson(storedDrinkLog);
+    return response;
   }
 
   @override
-  Future deleteCompleted() {
-    // TODO: implement deleteCompleted
+  Future<List<DrinkLogRequest>> getDrinksFromUser(String UserLogin) async {
+    DbCollection usersCollection;
+    DbCollection drinksCollection;
+    Db db =await new Db("mongodb://127.0.0.1/drinklog");
+    await db.open();
+    print(">> Fetching Drinks for {$UserLogin}");
+    drinksCollection = db.collection("drinklog");
+    usersCollection = db.collection("users");
+    
+    Map storedUser = await usersCollection.findOne({'login':UserLogin});
+    print(">> User {$storedUser} found");
+    
+    //cance if user is not valid in request
+    
+    //set an ID for the item, to find it again
+   
+    List<DrinkLogRequest> response = new List<DrinkLogRequest>();
+    await drinksCollection.find({'user_id':storedUser["_id"]}).forEach((d)=>response.add(new DrinkLogRequest.fromBson(d)));
+    print(">> Drinklog entries found {$response}");    
+    return response;
   }
-
-  @override
-  Future<UserResponse> get(int id) {
-    // TODO: implement get
-  }
-
-  
 }

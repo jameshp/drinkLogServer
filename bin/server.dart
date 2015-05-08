@@ -29,7 +29,7 @@ Future main(List<String> args) async {
     exit(1);
   });
 
-  _apiServer.addApi(new DrinkApi(new UserDaoMongoDBImpl()));
+  _apiServer.addApi(new DrinkApi(new DaoMongoDBImpl()));
   _apiServer.enableDiscoveryApi();
   
   var apiHandler = shelf_rpc.createRpcHandler(_apiServer);
